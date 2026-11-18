@@ -14,11 +14,20 @@ import {
   Shuffle,
   Shield,
   Zap,
+  Monitor,
+  Globe,
+  RotateCw,
 } from 'lucide-react';
 
 interface LobbyProps {
   onCreateRoom: (timeControl: TimeControlId, preferredColor: 'random' | 'w' | 'b') => void;
   onJoinRoom: (roomId: string) => void;
+  onStartOfflineMatch: (
+    whiteName: string,
+    blackName: string,
+    timeControl: TimeControlId,
+    autoFlip: boolean
+  ) => void;
   onOpenHistory: () => void;
   error?: string | null;
   onClearError?: () => void;
@@ -27,17 +36,27 @@ interface LobbyProps {
 export const Lobby: React.FC<LobbyProps> = ({
   onCreateRoom,
   onJoinRoom,
+  onStartOfflineMatch,
   onOpenHistory,
   error,
   onClearError,
 }) => {
+  const [activeTab, setActiveTab] = useState<'online' | 'offline'>('online');
+
   const [username, setUsername] = useState(getSavedUsername());
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(username);
 
+  // Online options
   const [selectedTc, setSelectedTc] = useState<TimeControlId>('10m');
   const [selectedColor, setSelectedColor] = useState<'random' | 'w' | 'b'>('random');
   const [joinCode, setJoinCode] = useState('');
+
+  // Offline options
+  const [offlineWhiteName, setOfflineWhiteName] = useState('Player 1 (White)');
+  const [offlineBlackName, setOfflineBlackName] = useState('Player 2 (Black)');
+  const [offlineTc, setOfflineTc] = useState<TimeControlId>('10m');
+  const [offlineAutoFlip, setOfflineAutoFlip] = useState(false);
 
   const [publicRooms, setPublicRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -81,6 +100,16 @@ export const Lobby: React.FC<LobbyProps> = ({
     }
   };
 
+  const handleStartOffline = (e: React.FormEvent) => {
+    e.preventDefault();
+    onStartOfflineMatch(
+      offlineWhiteName.trim() || 'White',
+      offlineBlackName.trim() || 'Black',
+      offlineTc,
+      offlineAutoFlip
+    );
+  };
+
   return (
     <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 animate-fade-in space-y-6 sm:space-y-8">
       {/* Top Navbar */}
@@ -96,7 +125,7 @@ export const Lobby: React.FC<LobbyProps> = ({
                 1v1 PvP
               </span>
             </div>
-            <p className="text-xs text-zinc-400">Strictly Real-Time Multiplayer Chess</p>
+            <p className="text-xs text-zinc-400">Strictly Real-Time & Offline 1v1 Chess</p>
           </div>
         </div>
 
@@ -147,6 +176,35 @@ export const Lobby: React.FC<LobbyProps> = ({
         </div>
       </div>
 
+      {/* Mode Selection Tabs (Online vs Offline) */}
+      <div className="flex justify-center">
+        <div className="inline-flex p-1.5 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-lg">
+          <button
+            onClick={() => setActiveTab('online')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'online'
+                ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>Online 1v1 PvP</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('offline')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'offline'
+                ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Monitor className="w-4 h-4" />
+            <span>Pass & Play (Offline 1v1)</span>
+          </button>
+        </div>
+      </div>
+
       {/* Error alert if any */}
       {error && (
         <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs sm:text-sm flex items-center justify-between shadow-lg">
@@ -159,33 +217,251 @@ export const Lobby: React.FC<LobbyProps> = ({
         </div>
       )}
 
-      {/* Main Grid: Create Room & Join Room */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Create Room Card */}
-        <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Play className="w-5 h-5 text-amber-500 fill-amber-500" />
-                <h2 className="text-lg font-bold text-zinc-100">Create New Match</h2>
+      {/* ONLINE TAB */}
+      {activeTab === 'online' && (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Create Room Card */}
+          <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Play className="w-5 h-5 text-amber-500 fill-amber-500" />
+                  <h2 className="text-lg font-bold text-zinc-100">Create Online Match</h2>
+                </div>
+                <span className="text-xs text-zinc-500 font-medium">Custom 1v1 Room</span>
               </div>
-              <span className="text-xs text-zinc-500 font-medium">Custom 1v1 Room</span>
+
+              {/* Time Control Options */}
+              <div className="space-y-2 mb-5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-500" /> Select Time Control
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {(Object.keys(TIME_CONTROLS) as TimeControlId[]).map((tcId) => {
+                    const tc = TIME_CONTROLS[tcId];
+                    const isSelected = selectedTc === tcId;
+                    return (
+                      <button
+                        key={tcId}
+                        type="button"
+                        onClick={() => setSelectedTc(tcId)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-amber-500/15 border-amber-500 text-amber-300 shadow-md'
+                            : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                        }`}
+                      >
+                        <div className="text-xs font-bold">{tc.name}</div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5">{tc.category}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Side preference */}
+              <div className="space-y-2 mb-6">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <Shuffle className="w-3.5 h-3.5 text-amber-500" /> Starting Color
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColor('random')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      selectedColor === 'random'
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                        : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    }`}
+                  >
+                    <Shuffle className="w-3.5 h-3.5" /> Random
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColor('w')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      selectedColor === 'w'
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                        : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-white border border-zinc-400" /> White
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColor('b')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      selectedColor === 'b'
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                        : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-600" /> Black
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onCreateRoom(selectedTc, selectedColor)}
+              className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm tracking-wide transition shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            >
+              <Zap className="w-4 h-4 fill-zinc-950" />
+              <span>CREATE ROOM & INVITE OPPONENT</span>
+            </button>
+          </div>
+
+          {/* Right Column: Join Room & Waiting List */}
+          <div className="md:col-span-5 flex flex-col gap-6">
+            {/* Join by Code Card */}
+            <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <KeyRound className="w-5 h-5 text-sky-400" />
+                <h2 className="text-lg font-bold text-zinc-100">Join Match</h2>
+              </div>
+              <p className="text-xs text-zinc-400 mb-4">
+                Enter the 6-character room code shared by your opponent.
+              </p>
+
+              <form onSubmit={handleJoinSubmit} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                    placeholder="e.g. 7X3K9Q"
+                    maxLength={6}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 font-mono font-bold text-center text-lg text-amber-400 tracking-widest uppercase focus:outline-none focus:border-amber-500 transition placeholder:text-zinc-600"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={joinCode.trim().length < 4}
+                  className="w-full py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-100 font-bold text-xs uppercase tracking-wider border border-zinc-700 hover:border-zinc-500 transition flex items-center justify-center gap-2"
+                >
+                  <span>ENTER ROOM</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Public Waiting Rooms */}
+            <div className="flex-1 p-5 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-xl flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-sm font-bold text-zinc-100">Open Matches</h3>
+                </div>
+                <button
+                  onClick={fetchRooms}
+                  disabled={loadingRooms}
+                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition"
+                  title="Refresh rooms"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingRooms ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-48 text-xs">
+                {publicRooms.filter((r) => r.status === 'waiting').length === 0 ? (
+                  <div className="py-6 text-center text-zinc-500 italic">
+                    No open matches waiting. Create one above to host!
+                  </div>
+                ) : (
+                  publicRooms
+                    .filter((r) => r.status === 'waiting')
+                    .map((r) => (
+                      <div
+                        key={r.id}
+                        className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 transition flex items-center justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-semibold text-zinc-200">
+                            {r.whiteName || r.blackName || 'Host'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 mt-0.5">
+                            <span>{r.timeControl.name}</span>
+                            <span>•</span>
+                            <span className="font-mono text-amber-500/80">#{r.id}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => onJoinRoom(r.id)}
+                          className="py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition"
+                        >
+                          Play
+                        </button>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OFFLINE PASS & PLAY TAB */}
+      {activeTab === 'offline' && (
+        <div className="max-w-2xl mx-auto p-6 sm:p-8 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <Monitor className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-zinc-100">Pass & Play (Local 1v1 Offline)</h2>
+              <p className="text-xs text-zinc-400">Play on the same screen together with a friend. No internet required.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleStartOffline} className="mt-6 space-y-6">
+            {/* Player Names Input */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white border border-zinc-400" /> White Player Name
+                </label>
+                <input
+                  type="text"
+                  value={offlineWhiteName}
+                  onChange={(e) => setOfflineWhiteName(e.target.value)}
+                  maxLength={18}
+                  placeholder="Player 1"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 transition"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-600" /> Black Player Name
+                </label>
+                <input
+                  type="text"
+                  value={offlineBlackName}
+                  onChange={(e) => setOfflineBlackName(e.target.value)}
+                  maxLength={18}
+                  placeholder="Player 2"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 transition"
+                  required
+                />
+              </div>
             </div>
 
             {/* Time Control Options */}
-            <div className="space-y-2 mb-5">
+            <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-500" /> Select Time Control
+                <Clock className="w-3.5 h-3.5 text-amber-500" /> Match Clocks
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {(Object.keys(TIME_CONTROLS) as TimeControlId[]).map((tcId) => {
                   const tc = TIME_CONTROLS[tcId];
-                  const isSelected = selectedTc === tcId;
+                  const isSelected = offlineTc === tcId;
                   return (
                     <button
                       key={tcId}
                       type="button"
-                      onClick={() => setSelectedTc(tcId)}
+                      onClick={() => setOfflineTc(tcId)}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         isSelected
                           ? 'bg-amber-500/15 border-amber-500 text-amber-300 shadow-md'
@@ -200,146 +476,37 @@ export const Lobby: React.FC<LobbyProps> = ({
               </div>
             </div>
 
-            {/* Side preference */}
-            <div className="space-y-2 mb-6">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                <Shuffle className="w-3.5 h-3.5 text-amber-500" /> Starting Color
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedColor('random')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    selectedColor === 'random'
-                      ? 'bg-amber-500/15 border-amber-500 text-amber-300'
-                      : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <Shuffle className="w-3.5 h-3.5" /> Random
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedColor('w')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    selectedColor === 'w'
-                      ? 'bg-amber-500/15 border-amber-500 text-amber-300'
-                      : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full bg-white border border-zinc-400" /> White
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedColor('b')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    selectedColor === 'b'
-                      ? 'bg-amber-500/15 border-amber-500 text-amber-300'
-                      : 'bg-zinc-800/60 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                  }`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-600" /> Black
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onCreateRoom(selectedTc, selectedColor)}
-            className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm tracking-wide transition shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-          >
-            <Zap className="w-4 h-4 fill-zinc-950" />
-            <span>CREATE ROOM & INVITE OPPONENT</span>
-          </button>
-        </div>
-
-        {/* Right Column: Join Room & Waiting List */}
-        <div className="md:col-span-5 flex flex-col gap-6">
-          {/* Join by Code Card */}
-          <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl">
-            <div className="flex items-center gap-2 mb-3">
-              <KeyRound className="w-5 h-5 text-sky-400" />
-              <h2 className="text-lg font-bold text-zinc-100">Join Match</h2>
-            </div>
-            <p className="text-xs text-zinc-400 mb-4">
-              Enter the 6-character room code shared by your opponent.
-            </p>
-
-            <form onSubmit={handleJoinSubmit} className="space-y-3">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                  placeholder="e.g. 7X3K9Q"
-                  maxLength={6}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 font-mono font-bold text-center text-lg text-amber-400 tracking-widest uppercase focus:outline-none focus:border-amber-500 transition placeholder:text-zinc-600"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={joinCode.trim().length < 4}
-                className="w-full py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-100 font-bold text-xs uppercase tracking-wider border border-zinc-700 hover:border-zinc-500 transition flex items-center justify-center gap-2"
-              >
-                <span>ENTER ROOM</span>
-              </button>
-            </form>
-          </div>
-
-          {/* Public Waiting Rooms */}
-          <div className="flex-1 p-5 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-xl flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-zinc-100">Open Matches</h3>
-              </div>
-              <button
-                onClick={fetchRooms}
-                disabled={loadingRooms}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition"
-                title="Refresh rooms"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingRooms ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2 max-h-48 text-xs">
-              {publicRooms.filter((r) => r.status === 'waiting').length === 0 ? (
-                <div className="py-6 text-center text-zinc-500 italic">
-                  No open matches waiting. Create one above to host!
+            {/* Auto-flip Board option */}
+            <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <RotateCw className="w-5 h-5 text-amber-500" />
+                <div>
+                  <div className="text-sm font-semibold text-zinc-200">Auto-Flip Board on Each Turn</div>
+                  <div className="text-xs text-zinc-500">Board automatically rotates so the active player faces the bottom.</div>
                 </div>
-              ) : (
-                publicRooms
-                  .filter((r) => r.status === 'waiting')
-                  .map((r) => (
-                    <div
-                      key={r.id}
-                      className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 transition flex items-center justify-between gap-2"
-                    >
-                      <div>
-                        <div className="font-semibold text-zinc-200">
-                          {r.whiteName || r.blackName || 'Host'}
-                        </div>
-                        <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 mt-0.5">
-                          <span>{r.timeControl.name}</span>
-                          <span>•</span>
-                          <span className="font-mono text-amber-500/80">#{r.id}</span>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => onJoinRoom(r.id)}
-                        className="py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition"
-                      >
-                        Play
-                      </button>
-                    </div>
-                  ))
-              )}
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={offlineAutoFlip}
+                  onChange={(e) => setOfflineAutoFlip(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
             </div>
-          </div>
+
+            {/* Start Button */}
+            <button
+              type="submit"
+              className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm tracking-wide transition shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-zinc-950" />
+              <span>START LOCAL 1v1 MATCH</span>
+            </button>
+          </form>
         </div>
-      </div>
+      )}
     </div>
   );
 };

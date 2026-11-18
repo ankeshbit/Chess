@@ -41,14 +41,23 @@ npm run dev
 
 ---
 
-## 🎮 Game Flow & Features
+## 🎮 Game Modes & Features
 
-### 1. Game Lobby & Matchmaking
+### 1. Online 1v1 Multiplayer (PvP)
 - **Create Room**: Choose your desired time control and starting color (Random, White, Black).
 - **Unique 6-Character Room Codes**: E.g., `AB3X9Q`.
 - **1-Click Invitation Link**: Instantly copy shareable room URLs (`http://localhost:5173/?room=AB3X9Q`).
 - **Open Matches Browser**: Live list of active rooms waiting for opponents.
 - **Custom Username**: Set your player name; persisted in browser storage.
+- **Spectator Mode**: If a 3rd person joins an active room, they can watch the live game.
+
+### 2. Pass & Play (Local 1v1 Offline Match)
+- **Same-Device 1v1 Match**: Play locally with a friend on the same laptop, desktop, or tablet.
+- **No Internet Required**: Runs self-contained in the browser with full authoritative chess rules via `chess.js`.
+- **Custom Names**: Set separate names for White and Black players.
+- **Full Time Controls**: Unlimited, 3 min, 5 min, 10 min, and 15m+10s with real-time countdown clocks.
+- **Auto-Flip Board Option**: Automatically rotates the board on each turn so the active player faces the bottom, or keep it fixed.
+- **Post-Game Rematch**: Seamless restart with swapped colors.
 
 ### 2. Authoritative Gameplay
 - **Authoritative Server**: Every move is validated server-side using `chess.js`.
