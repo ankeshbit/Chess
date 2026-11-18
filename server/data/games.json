@@ -1,0 +1,15 @@
+[
+  {
+    "id": "27040f7b-d08d-4812-9f07-1454736224a7",
+    "roomId": "NAEW4J",
+    "date": "2026-11-18T13:38:36.480Z",
+    "whiteName": "Magnus",
+    "blackName": "Hikaru",
+    "winner": "w",
+    "reason": "Hikaru resigned",
+    "movesCount": 2,
+    "timeControlName": "3 min (Blitz)",
+    "pgn": "[Event \"?\"]\n[Site \"?\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"?\"]\n[Black \"?\"]\n[Result \"*\"]\n\n1. e4 e5 *",
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
+  }
+]
