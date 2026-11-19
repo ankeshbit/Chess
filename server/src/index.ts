@@ -253,16 +253,151 @@ io.on('connection', (socket) => {
   });
 });
 
-// In production, serve static assets from client/dist if present
-const clientDistPath = path.resolve(__dirname, '../../client/dist');
-if (fs.existsSync(clientDistPath)) {
+// In production, locate static assets from client/dist if present
+const possibleClientPaths = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(process.cwd(), '../client/dist'),
+];
+
+let clientDistPath: string | null = null;
+for (const p of possibleClientPaths) {
+  if (fs.existsSync(p)) {
+    clientDistPath = p;
+    break;
+  }
+}
+
+if (clientDistPath) {
   console.log(`[Server] Serving production frontend from: ${clientDistPath}`);
   app.use(express.static(clientDistPath));
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
-      return res.sendFile(path.join(clientDistPath, 'index.html'));
+      return res.sendFile(path.join(clientDistPath!, 'index.html'));
     }
     next();
+  });
+} else {
+  console.log('[Server] No client/dist directory found. Serving backend status dashboard.');
+  app.get('/', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Grandmaster 1v1 Chess Server</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #09090b;
+            color: #f4f4f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+          }
+          .card {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+          }
+          .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 16px;
+          }
+          .pulse {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse 1.8s infinite;
+          }
+          @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+          }
+          h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 800; }
+          p { color: #a1a1aa; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5; }
+          .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+            text-align: left;
+          }
+          .info-box {
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 12px 14px;
+          }
+          .info-title { font-size: 11px; text-transform: uppercase; color: #71717a; font-weight: bold; }
+          .info-val { font-size: 13px; font-weight: 600; color: #e4e4e7; margin-top: 4px; }
+          .endpoints { text-align: left; font-size: 12px; color: #a1a1aa; margin-top: 16px; }
+          .endpoints a { color: #f59e0b; text-decoration: none; font-weight: 600; }
+          .endpoints a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="badge">
+            <span class="pulse"></span>
+            BACKEND ONLINE & ACTIVE
+          </div>
+          <h1>♟️ Grandmaster 1v1 Chess Server</h1>
+          <p>Authoritative Real-Time WebSocket & REST API server is running smoothly on Render.</p>
+          
+          <div class="grid">
+            <div class="info-box">
+              <div class="info-title">Socket.IO Server</div>
+              <div class="info-val">Active (Port ${PORT})</div>
+            </div>
+            <div class="info-box">
+              <div class="info-title">Chess Engine</div>
+              <div class="info-val">chess.js Authoritative</div>
+            </div>
+            <div class="info-box">
+              <div class="info-title">Match Store</div>
+              <div class="info-val">Persistent JSON/DB</div>
+            </div>
+            <div class="info-box">
+              <div class="info-title">Server Time</div>
+              <div class="info-val">${new Date().toUTCString()}</div>
+            </div>
+          </div>
+
+          <div class="endpoints">
+            <strong>REST Endpoints:</strong>
+            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+              <li><a href="/api/health">/api/health</a> &mdash; Server status healthcheck</li>
+              <li><a href="/api/rooms">/api/rooms</a> &mdash; Active & waiting public rooms</li>
+              <li><a href="/api/games">/api/games</a> &mdash; Recorded completed matches</li>
+            </ul>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
   });
 }
 
