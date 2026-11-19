@@ -203,8 +203,12 @@ io.on('connection', (socket) => {
         roomManager.handleDisconnect(socket.id);
     });
 });
-// In production, locate static assets from client/dist if present
+// In production, locate static assets from server/public or client/dist if present
 const possibleClientPaths = [
+    path.resolve(__dirname, '../public'),
+    path.resolve(__dirname, 'public'),
+    path.resolve(process.cwd(), 'server/public'),
+    path.resolve(process.cwd(), 'public'),
     path.resolve(__dirname, '../../client/dist'),
     path.resolve(__dirname, '../client/dist'),
     path.resolve(process.cwd(), 'client/dist'),
