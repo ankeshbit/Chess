@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameRecord } from '../types/chess';
 import { Trophy, Clock, X, Copy, Check, Calendar, ChevronRight } from 'lucide-react';
+import { getServerUrl } from '../services/config';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) =
   const [selectedGame, setSelectedGame] = useState<GameRecord | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+  const SERVER_URL = getServerUrl();
 
   useEffect(() => {
     if (isOpen) {

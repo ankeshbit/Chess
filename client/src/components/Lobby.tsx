@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TimeControlId, TIME_CONTROLS } from '../types/chess';
 import { getSavedUsername, saveUsername } from '../services/socket';
+import { getServerUrl } from '../services/config';
 import {
   Swords,
   Clock,
@@ -61,7 +62,7 @@ export const Lobby: React.FC<LobbyProps> = ({
   const [publicRooms, setPublicRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+  const SERVER_URL = getServerUrl();
 
   const fetchRooms = async () => {
     try {

@@ -16,7 +16,57 @@ A production-quality, authoritative 1v1 Player vs Player (PvP) Online Chess plat
 
 ---
 
-## 🚀 Quick Start
+## 🚢 Deployment Guide
+
+This project is fully production-ready and can be deployed either as a **unified full-stack service** (recommended) or as **separate frontend & backend services**.
+
+---
+
+### Option A: 1-Click / Unified Full-Stack (Render, Railway, Fly.io, Heroku)
+
+Because the Express server serves both the Socket.IO server, REST APIs, and the compiled Vite frontend (`client/dist`) with automatic SPA routing:
+
+1. **Push your code to GitHub**.
+2. **On Render / Railway / Heroku**:
+   - Create a **New Web Service** connected to your repository.
+   - **Build Command**: `npm run build`
+   - **Start Command**: `npm start`
+   - **Environment Variables**:
+     - `NODE_ENV=production`
+     - `PORT` (automatically assigned by the platform)
+3. **Done!** The platform will install all dependencies, build the frontend and backend, and serve the entire application with WebSocket support.
+
+---
+
+### Option B: Docker Container
+
+A multi-stage `Dockerfile` is included:
+
+```bash
+# Build the Docker image
+docker build -t grandmaster-chess .
+
+# Run the container
+docker run -p 5000:5000 grandmaster-chess
+```
+Open [http://localhost:5000](http://localhost:5000) to view your app.
+
+---
+
+### Option C: Separate Deployments (e.g. Vercel Frontend + Render Backend)
+
+If you prefer deploying the frontend to Vercel/Netlify and the backend to Render/Railway:
+1. **Backend (Server)**:
+   - Root directory: `server`
+   - Build: `npm run build`
+   - Start: `npm start`
+2. **Frontend (Client)**:
+   - Root directory: `client`
+   - Build: `npm run build`
+   - Output directory: `dist`
+   - Set Environment Variable: `VITE_SERVER_URL=https://your-backend-service.onrender.com`
+
+---
 
 ### 1. Install Dependencies
 ```bash

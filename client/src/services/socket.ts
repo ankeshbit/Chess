@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { getServerUrl } from './config';
 
 // Generate or retrieve persistent playerId
 export function getOrCreatePlayerId(): string {
@@ -24,8 +25,8 @@ export function saveUsername(name: string) {
   localStorage.setItem('chess_pvp_username', name.trim());
 }
 
-// Socket connection
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+// Socket connection using dynamic production-ready server URL
+const SERVER_URL = getServerUrl();
 
 export const socket: Socket = io(SERVER_URL, {
   autoConnect: true,

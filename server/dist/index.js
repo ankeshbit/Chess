@@ -3,9 +3,14 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { RoomManager } from './roomManager.js';
 import { getGameRecords, getGameRecordById } from './db.js';
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 5000;
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -198,6 +203,28 @@ io.on('connection', (socket) => {
         roomManager.handleDisconnect(socket.id);
     });
 });
+// In production, serve static assets from client/dist if present
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+    console.log(`[Server] Serving production frontend from: ${clientDistPath}`);
+    app.use(express.static(clientDistPath));
+    app.use((req, res, next) => {
+        if (req.method === 'GET' && !req.path.startsWith('/api')) {
+            return res.sendFile(path.join(clientDistPath, 'index.html'));
+        }
+        next();
+    });
+}
 server.listen(PORT, () => {
     console.log(`[Server] Chess PvP Server running on port ${PORT}`);
 });
+// Graceful shutdown
+const shutdown = () => {
+    console.log('[Server] Gracefully shutting down...');
+    server.close(() => {
+        console.log('[Server] HTTP and Socket server closed.');
+        process.exit(0);
+    });
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
